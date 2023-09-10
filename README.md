@@ -5,7 +5,8 @@
 - KafkaStreams의 StateStore의 오래되었지만 더는 업데이트 되지 않은 것들은 다음 문제를 야기할 수 있음.
   - 오래된 ChangeLog가 계속 Join되면서 불필요한 로그를 더욱 많이 만들어낼 수 있음. (Left - Right Join)
   - 오래된 ChangeLog가 계속 Memory, Disk의 용량을 차지하고 있을 수 있음.
-  - 오래된 ChangeLog는 더 많은 Restore 시간을 요구함. 
+  - 오래된 ChangeLog는 더 많은 Restore 시간을 요구함.
+  - 사용자는 인지하지 못하고 부정확한 데이터가 계속 나올 수 있음.
 
 
 ## Ignore oldest log which should be restored with RestoreConsumer
@@ -67,6 +68,38 @@
 
 ### 결론 
 - RestoreConsumer를 이용한 Old Log Filter는 Kafka Streams Cluster
+
+
+## RocksDB에 저장할 때, 레코드의 생성 시점을 같이 저장
+
+### Psuedo Code
+```java
+// When Input Case
+final Object key = record.key();
+final Object value = record.value();
+final long createdTime = System.currentTimeMillis();
+
+final RocksDBValueEntry rocksDBValue RocksDBValueEntry.create(value, createdTime);
+rocksDB.put(key, rocksDBValue);
+```
+
+```java
+// When output Case
+final long interval = this.processorContext.getExpiredTime();
+final long now = System.currentTimeMillis();
+final long expiredThresholdTime = now - interval;
+
+
+rocksDBEntry.stream().
+            .filter(rocksDBEntry -> rocksDBEntry.getCreateTime() < expiredThresholdTime)
+            .forEach(rocksDBEntry -> proccesor.forward(record, rocksDBEntry);
+```
+
+- RocksDB는 객체를 저런 방식으로도 저장할 수 있는지?
+- RocksDB에 저장된 ChangeLog는 이런 형식으로 모든 Kafka Topic에 저장될 것임. 따라서 Kafka Streams Cluster 내부에서의 State는 동일하게 유지될 수 있을 것임. 
+
+
+
 
 
 
