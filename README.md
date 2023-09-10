@@ -1,7 +1,14 @@
 # think-kafka
 
 
-### Ignore oldest log which should be restored with RestoreConsumer
+# 문제
+- KafkaStreams의 StateStore의 오래되었지만 더는 업데이트 되지 않은 것들은 다음 문제를 야기할 수 있음.
+  - 오래된 ChangeLog가 계속 Join되면서 불필요한 로그를 더욱 많이 만들어낼 수 있음. (Left - Right Join)
+  - 오래된 ChangeLog가 계속 Memory, Disk의 용량을 차지하고 있을 수 있음.
+  - 오래된 ChangeLog는 더 많은 Restore 시간을 요구함. 
+
+
+## Ignore oldest log which should be restored with RestoreConsumer
 
 #### Glosary
 - Group A : Limit 시간을 지난 녀석들
@@ -46,18 +53,21 @@
   - Case5-2와 동일한 상태가 됨. 
 
 
-## 파티션별 / 토픽별로 서로 다른 상태(시점 관점)는 괜찮은가?
+### 파티션별 / 토픽별로 서로 다른 상태(시점 관점)는 괜찮은가?
 - 잠재적인 문제를 가지고 있음.
   1. 리파티션 시, 한쪽 파티션은 오래된 데이터까지, 한쪽 파티션은 최신 데이터만 가지고 있다면 문제일 수 있음.
   2. 조인 시, 한쪽 토픽은 오래된 데이터, 한쪽 토픽은 최신 데이터만 있다면 문제일 수 있음.
 - 오래된 데이터 / 최신 데이터가 서로 다른 State를 가지고 있는 경우에는 잠재적인 데이터 문제가 발생할 수 있음. 
 
 
-## 파티션 / 토픽별로 서로 다른 상태를 맞추는 방법은?
+### 파티션 / 토픽별로 서로 다른 상태를 맞추는 방법은?
 - 하나의 리밸런싱이 발생하면, Kafka Streams Cluster 전체가 재기동해서 Restore 함.
   - 장점 : Kafka Streams Cluster 전체의 State의 최신 상태를 달성할 수 있음.
   - 단점 : Stop the world 시간이 길어짐. (전체 Kafka Streams Application의 ChangeLog성 토픽을 Log Replay 해야함)
-  - 
+
+### 결론 
+- RestoreConsumer를 이용한 Old Log Filter는 Kafka Streams Cluster
+
 
 
 
